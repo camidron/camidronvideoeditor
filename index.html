@@ -8,14 +8,15 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Cami Dron Portfolio">
 <meta property="og:description" content="Cami Dron Video Editor">
-<meta property="og:image" content="og.jpg">
+<meta property="og:image" content="https://camidron.github.io/camidronvideoeditor/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-
+<meta property="og:url" content="https://camidron.github.io/camidronvideoeditor/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="og.jpg">
+<meta name="twitter:image" content="https://camidron.github.io/camidronvideoeditor/og.jpg">
 <link rel="preload" as="image" href="fondo.jpg" media="(min-width:961px)">
-<link rel="preload" as="image" href="fondo-sm.jpg" media="(max-width:960px)">
+<link rel="preload" as="image" href="fondo-sm.jpg" media="(min-width:721px) and (max-width:960px)">
+<link rel="preload" as="image" href="fondo-mobile.jpg" media="(max-width:720px)">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cpath%20d%3D%22M4%2014a5%205%200%200%201%205-5h16l5%205h25a5%205%200%200%201%205%205v31H4z%22%20fill%3D%22%23e5bb2b%22/%3E%3Crect%20x%3D%222%22%20y%3D%2220%22%20width%3D%2260%22%20height%3D%2238%22%20rx%3D%225%22%20fill%3D%22%23f7d65e%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,8 +55,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .desktop{position:relative;height:100%;min-height:560px;overflow:hidden;isolation:isolate}
 .wall{position:absolute;inset:0;z-index:-2;background:var(--bg) url("fondo.jpg") center/cover no-repeat}
 @media (max-width:960px){.wall{background-image:url("fondo-sm.jpg")}}
+@media (max-width:720px){.wall{background-image:url("fondo-mobile.jpg");background-position:center}.wall iframe{display:none}}
 .wall iframe{position:absolute;top:50%;left:50%;width:max(100%,calc(100svh * 1.7778));height:max(100%,calc(100vw * .5625));transform:translate(-50%,-50%);border:0;pointer-events:none;opacity:0;transition:opacity 1.2s}
 .wall iframe.on{opacity:1}
+.wall video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s}
+.wall video.on{opacity:1}
 .wall{overflow:hidden}
 
 
@@ -141,13 +145,13 @@ nav.top a:hover{background:rgb(0 0 0 / .06)}
 
 /* ---------- celular ---------- */
 @media (max-width:720px){
-  body{overflow:auto}
-  .desktop{height:auto;min-height:100%;padding:calc(env(safe-area-inset-top,0px) + 120px) 16px 90px}
+  .desktop{display:flex;flex-direction:column;justify-content:flex-end;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 28px)}
   nav.top{max-width:calc(100% - 24px)}
   nav.top a{font-size:11px;padding:4px 7px}
-  .icons{display:grid;grid-template-columns:repeat(2,1fr);gap:22px 12px}
-  .item{position:static;transform:none;width:72%;justify-self:center}
-  .item .art{aspect-ratio:1.4}
+  .icons{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px;justify-items:center}
+  .item{position:static;transform:none;width:68px;gap:4px}
+  .item .art{aspect-ratio:1.25;border-radius:10px}
+  .item .lab{font-size:10.5px;padding:1px 5px;border-radius:4px}
   .fwin{left:12px!important;top:calc(env(safe-area-inset-top,0px) + 12px)!important;width:calc(100vw - 24px);height:calc(100svh - 24px - env(safe-area-inset-top,0px));cursor:default}
   .fwin.note{height:auto}
   .files{--min:130px!important}
@@ -212,7 +216,8 @@ nav.top a:hover{background:rgb(0 0 0 / .06)}
 const CONFIG = {
   email: "camiladron@gmail.com",
   linkedin: "https://www.linkedin.com/in/camidron/",
-  heroVimeo: "https://vimeo.com/1232112871"  // fondo: loop, sin sonido
+  heroFile: "fondo.mp4",                       // fondo: archivo subido junto al sitio
+  heroVimeo: "https://vimeo.com/1232112871"  // respaldo si fondo.mp4 no está
 };
 
 const CATEGORIES = [
@@ -583,9 +588,10 @@ document.querySelectorAll("nav.top a").forEach(a => a.addEventListener("click", 
   if(it) openWin(it);
 }));
 
-/* ---- fondo: el video de Vimeo (loop, mudo) se pide después de cargar la página ---- */
-addEventListener("load", () => {
-  if(matchMedia("(prefers-reduced-motion:reduce)").matches || (navigator.connection && navigator.connection.saveData)) return;
+/* ---- fondo: video en loop y mudo, se pide después de cargar la página ----
+   Primero intenta con fondo.mp4 (subido junto al sitio, sin ningún control).
+   Si ese archivo no está, usa el video de Vimeo como respaldo. */
+function vimeoBackground(){
   const vm = parseVimeo(CONFIG.heroVimeo); if(!vm) return;
   const q = new URLSearchParams({ background:1, autoplay:1, loop:1, muted:1, autopause:0, controls:0, dnt:1 });
   if(vm.h) q.set("h", vm.h);
@@ -594,6 +600,17 @@ addEventListener("load", () => {
   f.allow = "autoplay; fullscreen"; f.tabIndex = -1; f.title = "Fondo";
   f.addEventListener("load", () => setTimeout(() => f.classList.add("on"), 400), {once:true});
   $("#wall").appendChild(f);
+}
+addEventListener("load", () => {
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches || (navigator.connection && navigator.connection.saveData)) return;
+  if(isMobile()) return;  // en celular queda sólo la foto
+  const v = document.createElement("video");
+  Object.assign(v, { muted:true, defaultMuted:true, loop:true, autoplay:true, playsInline:true, preload:"auto" });
+  v.setAttribute("muted",""); v.setAttribute("playsinline",""); v.setAttribute("aria-hidden","true");
+  v.addEventListener("canplay", () => { v.classList.add("on"); v.play().catch(()=>{}); }, {once:true});
+  v.addEventListener("error", () => { v.remove(); vimeoBackground(); }, {once:true});
+  v.src = CONFIG.heroFile;
+  $("#wall").appendChild(v);
 });
 
 /* ---- si el link trae #ai, #brandeD, #podcast_vod, #about o #contacto, lo abre ---- */
