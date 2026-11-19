@@ -287,7 +287,8 @@ function parseVimeo(u){
 }
 
 /* ---- caché de metadatos (oEmbed): la segunda visita no pide nada ---- */
-const CACHE_KEY = "vmeta-v2";
+const CACHE_KEY = "vmeta-v3";
+const CACHE_TTL = 12 * 60 * 60 * 1000;  // los datos de Vimeo se renuevan cada 12 horas
 let cache = {};
 try { cache = JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch(e){}
 const saveCache = () => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch(e){} };
@@ -295,14 +296,14 @@ const inflight = {};
 function getMeta(v){
   if(!v) return Promise.resolve(null);
   const k = v.id + (v.h||"");
-  if(cache[k]) return Promise.resolve(cache[k]);
+  if(cache[k] && Date.now() - (cache[k].at || 0) < CACHE_TTL) return Promise.resolve(cache[k]);
   if(inflight[k]) return inflight[k];
   const page = `https://vimeo.com/${v.id}${v.h?"/"+v.h:""}`;
   inflight[k] = fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(page)}&width=640`)
     .then(r => r.ok ? r.json() : null)
     .then(d => {
       if(!d) return null;
-      const meta = { t:d.title, d:d.duration, w:d.width, hh:d.height, th:(d.thumbnail_url||"").replace(/_\d+x\d+/, "_640") };
+      const meta = { at:Date.now(), t:d.title, d:d.duration, w:d.width, hh:d.height, th:(d.thumbnail_url||"").replace(/_\d+x\d+/, "_640") };
       cache[k] = meta; saveCache(); return meta;
     }).catch(() => null);
   return inflight[k];
